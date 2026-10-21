@@ -19,6 +19,14 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
+    /* Safe Area Inset Utility Variables */
+    :root {
+      --sat: env(safe-area-inset-top, 0px);
+      --sab: env(safe-area-inset-bottom, 0px);
+      --sal: env(safe-area-inset-left, 0px);
+      --sar: env(safe-area-inset-right, 0px);
+    }
+
     /* Custom Scrollbars */
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
@@ -70,52 +78,54 @@
   </style>
 </head>
 
-<body class="h-full w-full relative flex flex-col font-sans">
+<body class="h-full h-[100dvh] w-full relative flex flex-col font-sans overflow-hidden bg-slate-950">
 
   <!-- Fullscreen Map Container -->
   <div id="map" class="absolute inset-0 w-full h-full z-0"></div>
 
-  <!-- TOP HEADER HUD -->
-  <div class="absolute top-2 left-2 right-2 sm:left-1/2 sm:-translate-x-1/2 z-20 sm:w-[94%] sm:max-w-xl glass-panel rounded-2xl p-2.5 flex items-center justify-between shadow-xl">
-    <div class="flex items-center gap-2">
-      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-300 text-slate-950 flex items-center justify-center font-black text-base shadow-md">
-        <i class="fa-solid fa-stopwatch-20"></i>
+  <!-- TOP HEADER HUD (Mobile Safe-Area Padding Fixed) -->
+  <div class="absolute top-0 left-0 right-0 z-20 pt-[max(0.5rem,env(safe-area-inset-top))] px-2 flex justify-center pointer-events-none">
+    <div class="pointer-events-auto w-full sm:w-[94%] sm:max-w-xl glass-panel rounded-2xl p-2.5 flex items-center justify-between shadow-xl">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-300 text-slate-950 flex items-center justify-center font-black text-base shadow-md shrink-0">
+          <i class="fa-solid fa-stopwatch-20"></i>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-xs sm:text-sm font-black tracking-tight text-slate-100 flex items-center gap-1.5 truncate">
+            GPX 最速ルート解析器
+            <span id="badge-valid-count" class="bg-cyan-950 text-cyan-400 border border-cyan-500/30 text-[10px] px-2 py-0.2 rounded-full font-bold shrink-0">0 解析完了</span>
+          </h1>
+          <p id="top-subtitle" class="text-[10px] text-slate-400 truncate max-w-[150px] sm:max-w-xs">
+            複数GPXを読み込みスタート/ゴール区間の最速を自動判定
+          </p>
+        </div>
       </div>
-      <div>
-        <h1 class="text-xs sm:text-sm font-black tracking-tight text-slate-100 flex items-center gap-1.5">
-          GPX 最速ルート解析器
-          <span id="badge-valid-count" class="bg-cyan-950 text-cyan-400 border border-cyan-500/30 text-[10px] px-2 py-0.2 rounded-full font-bold">0 解析完了</span>
-        </h1>
-        <p id="top-subtitle" class="text-[10px] text-slate-400 truncate max-w-[170px] sm:max-w-xs">
-          複数GPXを読み込みスタート/ゴール区間の最速を自動判定
-        </p>
+
+      <!-- Top Action Toolbar -->
+      <div class="flex items-center gap-1.5 shrink-0">
+        <label class="glass-btn hover:bg-slate-700 text-cyan-300 px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95 transition">
+          <i class="fa-solid fa-folder-open text-cyan-400"></i>
+          <span class="hidden sm:inline">読込</span>
+          <!-- iOS Safari compatible file input -->
+          <input type="file" id="gpx-files-input" multiple class="hidden">
+        </label>
+        
+        <!-- File Management Button -->
+        <button id="btn-open-file-manager" class="glass-btn hover:bg-slate-700 text-amber-300 px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition relative">
+          <i class="fa-solid fa-layer-group text-amber-400"></i>
+          <span class="hidden sm:inline">管理</span>
+          <span id="file-count-badge" class="bg-amber-500 text-slate-950 text-[10px] font-black px-1.5 py-0.2 rounded-full min-w-[18px] text-center">0</span>
+        </button>
+
+        <button id="btn-settings" class="glass-btn w-8 h-8 rounded-xl text-slate-200 flex items-center justify-center shadow-md active:scale-95" title="設定">
+          <i class="fa-solid fa-gear text-xs text-slate-300"></i>
+        </button>
       </div>
-    </div>
-
-    <!-- Top Action Toolbar -->
-    <div class="flex items-center gap-1.5">
-      <label class="glass-btn hover:bg-slate-700 text-cyan-300 px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95 transition">
-        <i class="fa-solid fa-folder-open text-cyan-400"></i>
-        <span class="hidden sm:inline">読込</span>
-        <!-- iOS Safari compatible file input -->
-        <input type="file" id="gpx-files-input" multiple class="hidden">
-      </label>
-      
-      <!-- File Management Button -->
-      <button id="btn-open-file-manager" class="glass-btn hover:bg-slate-700 text-amber-300 px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition relative">
-        <i class="fa-solid fa-layer-group text-amber-400"></i>
-        <span class="hidden sm:inline">管理</span>
-        <span id="file-count-badge" class="bg-amber-500 text-slate-950 text-[10px] font-black px-1.5 py-0.2 rounded-full min-w-[18px] text-center">0</span>
-      </button>
-
-      <button id="btn-settings" class="glass-btn w-8 h-8 rounded-xl text-slate-200 flex items-center justify-center shadow-md active:scale-95" title="設定">
-        <i class="fa-solid fa-gear text-xs text-slate-300"></i>
-      </button>
     </div>
   </div>
 
-  <!-- TOP-RIGHT MAP CONTROLS -->
-  <div class="absolute top-[65px] right-2.5 z-20 flex flex-col gap-1.5">
+  <!-- TOP-RIGHT MAP CONTROLS (Position Offset for Safe Area) -->
+  <div class="absolute top-[calc(68px+env(safe-area-inset-top))] right-2.5 z-20 flex flex-col gap-1.5">
     <button id="btn-zoom-in" class="glass-btn w-9 h-9 rounded-xl text-slate-200 flex items-center justify-center shadow-lg active:scale-95">
       <i class="fa-solid fa-plus text-xs"></i>
     </button>
@@ -128,7 +138,7 @@
   </div>
 
   <!-- BOTTOM FLOATING PANEL: COMPACT S/G PICKER & MAXIMIZED LIST -->
-  <div id="bottom-panel" class="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 w-[96%] max-w-xl transition-all duration-300">
+  <div id="bottom-panel" class="absolute bottom-[max(0.5rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-20 w-[96%] max-w-xl transition-all duration-300">
     <div class="glass-panel rounded-2xl p-2.5 relative border border-slate-700/80 shadow-2xl">
       
       <!-- Panel Collapse Toggle -->
@@ -147,7 +157,7 @@
               <span class="font-bold text-slate-200 flex items-center gap-1 shrink-0">
                 <i class="fa-solid fa-sliders text-emerald-400 text-xs"></i> 基準:
               </span>
-              <select id="select-ref-track" class="bg-slate-950 text-amber-300 font-bold text-[11px] px-2 py-0.5 rounded-lg border border-amber-500/40 max-w-[180px] sm:max-w-[240px] truncate focus:outline-none focus:ring-1 focus:ring-amber-400 shadow-inner">
+              <select id="select-ref-track" class="bg-slate-950 text-amber-300 font-bold text-[11px] px-2 py-0.5 rounded-lg border border-amber-500/40 max-w-[160px] sm:max-w-[240px] truncate focus:outline-none focus:ring-1 focus:ring-amber-400 shadow-inner">
                 <!-- Dynamic Options -->
               </select>
             </div>
@@ -235,19 +245,19 @@
             </div>
           </div>
 
-          <!-- TAB 1: RANKING LEADERBOARD (Expanded Scroll Container) -->
+          <!-- TAB 1: RANKING LEADERBOARD -->
           <div id="tab-content-ranking" class="block">
-            <div id="leaderboard-list" class="max-h-52 sm:max-h-64 overflow-y-auto space-y-1.5 pr-0.5">
+            <div id="leaderboard-list" class="max-h-40 sm:max-h-56 overflow-y-auto space-y-1.5 pr-0.5">
               <div class="p-6 text-center text-slate-500 text-xs bg-slate-900/40 rounded-xl border border-slate-800/60 flex flex-col items-center justify-center gap-2">
                 <i class="fa-solid fa-file-circle-plus text-2xl text-slate-600"></i>
-                GPXファイルを読み込むか、デモデータ（5本）を生成してください
+                右上の「読込」ボタンからGPXファイルを読み込んでください
               </div>
             </div>
           </div>
 
-          <!-- TAB 2: LOADED GPX FILE LIST (Expanded Scroll Container) -->
+          <!-- TAB 2: LOADED GPX FILE LIST -->
           <div id="tab-content-files" class="hidden">
-            <div id="inline-file-list" class="max-h-52 sm:max-h-64 overflow-y-auto space-y-1.5 pr-0.5">
+            <div id="inline-file-list" class="max-h-40 sm:max-h-56 overflow-y-auto space-y-1.5 pr-0.5">
               <!-- Dynamic Inline File Items -->
             </div>
           </div>
@@ -257,18 +267,15 @@
         <!-- FOOTER UTILITIES & VERSION -->
         <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">
           <div class="flex items-center gap-1.5">
-            <button id="btn-load-sample" class="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 bg-slate-800/90 px-2.5 py-0.5 rounded-lg border border-slate-700 shadow active:scale-95 transition text-[10px]">
-              <i class="fa-solid fa-flask text-xs"></i> デモ (5本)
-            </button>
-            <button id="btn-export-csv" class="text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1 bg-slate-800/90 px-2 py-0.5 rounded-lg border border-slate-700 active:scale-95 transition text-[10px]">
+            <button id="btn-export-csv" class="text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1 bg-slate-800/90 px-2.5 py-0.5 rounded-lg border border-slate-700 active:scale-95 transition text-[10px]">
               <i class="fa-solid fa-download text-xs"></i> CSV出力
             </button>
-            <button id="btn-clear-all" class="text-red-400 hover:text-red-300 font-bold flex items-center gap-1 bg-slate-800/90 px-2 py-0.5 rounded-lg border border-slate-700 active:scale-95 transition text-[10px]">
+            <button id="btn-clear-all" class="text-red-400 hover:text-red-300 font-bold flex items-center gap-1 bg-slate-800/90 px-2.5 py-0.5 rounded-lg border border-slate-700 active:scale-95 transition text-[10px]">
               <i class="fa-solid fa-trash-can text-xs"></i> 一括除外
             </button>
           </div>
           <div class="text-[9px] text-slate-500 font-mono">
-            v2026.10.21.0940
+            v2026.10.22.0840
           </div>
         </div>
 
@@ -322,7 +329,7 @@
   </div>
 
   <!-- MAP TILE SELECTOR MODAL -->
-  <div id="tile-modal" class="hidden absolute top-[115px] right-2.5 z-30 w-48 glass-panel rounded-2xl p-2 shadow-2xl border border-slate-700 space-y-1">
+  <div id="tile-modal" class="hidden absolute top-[calc(118px+env(safe-area-inset-top))] right-2.5 z-30 w-48 glass-panel rounded-2xl p-2 shadow-2xl border border-slate-700 space-y-1">
     <div class="text-[10px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider border-b border-slate-700/60 mb-1">
       地図タイル選択
     </div>
@@ -599,7 +606,7 @@
     }
 
     /* ==========================================================================
-       4. FILE MANAGEMENT & BULK EXCLUSION ENGINE (FIXED)
+       4. FILE MANAGEMENT & BULK EXCLUSION ENGINE
        ========================================================================== */
     function removeSingleFile(routeId) {
       const idx = state.rawRoutes.findIndex(r => r.id === routeId);
@@ -614,7 +621,6 @@
       }
     }
 
-    // FIXED: Cleanly clear all GPX files, polylines, markers and UI counters
     function clearAllFiles() {
       state.rawRoutes = [];
       state.analyzedRoutes = [];
@@ -1057,7 +1063,7 @@
       document.getElementById('lb-summary').textContent = `${validRoutes.length} 件適合 (全 ${state.rawRoutes.length} 件)`;
 
       if (state.analyzedRoutes.length === 0) {
-        container.innerHTML = `<div class="p-6 text-center text-slate-500 text-xs bg-slate-900/40 rounded-xl border border-slate-800/60">GPXファイルを読み込んで解析スタートを押してください</div>`;
+        container.innerHTML = `<div class="p-6 text-center text-slate-500 text-xs bg-slate-900/40 rounded-xl border border-slate-800/60">右上の「読込」からGPXを読み込んでください</div>`;
         return;
       }
 
@@ -1115,59 +1121,8 @@
     }
 
     /* ==========================================================================
-       7. DEMO GENERATOR & CSV EXPORT
+       7. CSV EXPORT & UTILITIES
        ========================================================================== */
-    function generateDemoRoutes() {
-      const baseLat = 37.398;
-      const baseLng = 140.388;
-      const routeConfigs = [
-        { name: 'デモアタック_01_最速レコード', speedFactor: 1.0, jitter: 0.0001, dateOffset: 0 },
-        { name: 'デモアタック_02_セカンドベスト', speedFactor: 1.05, jitter: 0.0002, dateOffset: -86400000 * 2 },
-        { name: 'デモアタック_03_中間ペース', speedFactor: 1.12, jitter: 0.00025, dateOffset: -86400000 * 5 },
-        { name: 'デモアタック_04_スローペース', speedFactor: 1.25, jitter: 0.0003, dateOffset: -86400000 * 10 },
-        { name: 'デモアタック_05_ショートカット試行', speedFactor: 1.18, jitter: 0.0004, dateOffset: -86400000 * 15 }
-      ];
-
-      state.rawRoutes = [];
-
-      routeConfigs.forEach((cfg, rIdx) => {
-        const points = [];
-        let cumDist = 0;
-        const totalPts = 120;
-        const nowMs = Date.now() + cfg.dateOffset;
-        const dt = new Date(nowMs);
-        const dateStr = `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')} 10:00`;
-
-        for (let i = 0; i < totalPts; i++) {
-          const progress = i / (totalPts - 1);
-          const lat = baseLat + progress * 0.035 + Math.sin(progress * Math.PI * 2) * 0.008 + (Math.random() - 0.5) * cfg.jitter;
-          const lng = baseLng + progress * 0.045 + Math.cos(progress * Math.PI * 2) * 0.008 + (Math.random() - 0.5) * cfg.jitter;
-
-          if (i > 0) {
-            const prev = points[i-1];
-            cumDist += getDistanceMeters([prev.lat, prev.lng], [lat, lng]);
-          }
-
-          const timeSec = i * 2.5 * cfg.speedFactor;
-          points.push({ lat, lng, timeSec, timestampMs: nowMs + timeSec * 1000, dist: cumDist });
-        }
-
-        state.rawRoutes.push({
-          id: `demo-${rIdx}-${Date.now()}`,
-          name: cfg.name,
-          date: dateStr,
-          firstTimestamp: nowMs,
-          points: points,
-          pointCount: points.length,
-          totalDist: cumDist
-        });
-      });
-
-      updateRefTrackSelector();
-      renderAllFileListViews();
-      toast('5本のデモGPXトラックを生成しました');
-    }
-
     function exportResultsCSV() {
       const validRoutes = state.analyzedRoutes.filter(r => r.isValid);
       if (validRoutes.length === 0) {
@@ -1192,9 +1147,6 @@
       toast('CSVファイルをダウンロードしました');
     }
 
-    /* ==========================================================================
-       8. UTILITY HELPERS
-       ========================================================================== */
     function getDistanceMeters(p1, p2) {
       const R = 6371000;
       const dLat = (p2[0] - p1[0]) * Math.PI / 180;
@@ -1226,7 +1178,7 @@
     }
 
     /* ==========================================================================
-       9. EVENT LISTENERS & INITIALIZATION
+       8. EVENT LISTENERS & INITIALIZATION
        ========================================================================== */
     window.addEventListener('DOMContentLoaded', () => {
       initMap();
@@ -1323,7 +1275,6 @@
       });
 
       // Footer Actions
-      document.getElementById('btn-load-sample').addEventListener('click', generateDemoRoutes);
       document.getElementById('btn-export-csv').addEventListener('click', exportResultsCSV);
       document.getElementById('btn-clear-all').addEventListener('click', () => {
         if (confirm('すべてのGPXファイルを一括除外しますか？')) {
@@ -1372,8 +1323,9 @@
       document.getElementById('btn-zoom-in').addEventListener('click', () => map.zoomIn());
       document.getElementById('btn-zoom-out').addEventListener('click', () => map.zoomOut());
 
-      // Auto-load sample demo routes on initial load
-      generateDemoRoutes();
+      // Initialize UI state
+      updateRefTrackSelector();
+      renderAllFileListViews();
     });
   </script>
 </body>
